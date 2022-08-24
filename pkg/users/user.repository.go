@@ -1,15 +1,17 @@
 package users
 
 import (
+	"github.com/ooatamelbug/blog-task-app/pkg/users/dto"
 	"gorm.io/gorm"
 )
 
 type UserRepository interface {
 	Create(user User) User
-	FindOne(userId string) User
+	FindOne(search dto.SearchUser) (User, *gorm.DB)
 	FindAll() []User
 	Update(user User) User
 	Delete(user User) User
+	FindAnd(searchWithAnd dto.SearchWithAnd) User
 }
 
 type userConnection struct {
@@ -37,14 +39,20 @@ func (db *userConnection) Delete(user User) User {
 	return user
 }
 
-func (db *userConnection) FindOne(userId string) User {
+func (db *userConnection) FindOne(search dto.SearchUser) (User, *gorm.DB) {
 	var user User
-	db.connection.Where("id = ?", userId).Take(&user)
-	return user
+	result := db.connection.Where("id = ?", search.UserId).Or("email = ?", search.Email).Find(&user)
+	return user, result
 }
 
 func (db *userConnection) FindAll() []User {
 	var user []User
 	db.connection.Find(&user)
+	return user
+}
+
+func (db *userConnection) FindAnd(searchWithAnd dto.SearchWithAnd) User {
+	var user User
+	db.connection.Where(&User{ID: searchWithAnd.ID}).First(&user)
 	return user
 }
