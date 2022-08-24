@@ -6,7 +6,7 @@ import (
 )
 
 type UserRepository interface {
-	Create(user User) User
+	Create(user User) (User, uint64)
 	FindOne(search dto.SearchUser) (User, *gorm.DB)
 	FindAll() []User
 	Update(user User) User
@@ -24,9 +24,9 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 	}
 }
 
-func (db *userConnection) Create(user User) User {
+func (db *userConnection) Create(user User) (User, uint64) {
 	db.connection.Save(user)
-	return user
+	return user, user.ID
 }
 
 func (db *userConnection) Update(user User) User {

@@ -56,7 +56,8 @@ func (service *userService) CreateUser(user dto.CreateUserDTO) User {
 	hashPassword := hashAndSalt([]byte(newUser.Password))
 	newUser.Password = hashPassword
 
-	res := service.userRepository.Create(newUser)
+	res, id := service.userRepository.Create(newUser)
+	res.ID = id
 	return res
 }
 
