@@ -6,16 +6,17 @@ import (
 	"os/exec"
 
 	"github.com/mashingan/smapping"
+	"github.com/ooatamelbug/blog-task-app/pkg/common/models"
 	"github.com/ooatamelbug/blog-task-app/pkg/users/dto"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UserService interface {
-	CreateUser(user dto.CreateUserDTO) (User, error)
-	GetOneUserByEmail(email string) User
-	UpdateUser(user dto.UpdateUserDTO) (User, error)
-	CredentialUser(email string, password string) (User, error)
-	ProfileUser(userId uint64) User
+	CreateUser(user dto.CreateUserDTO) (models.User, error)
+	GetOneUserByEmail(email string) models.User
+	UpdateUser(user dto.UpdateUserDTO) (models.User, error)
+	CredentialUser(email string, password string) (models.User, error)
+	ProfileUser(userId uint64) models.User
 }
 
 type userServiceData struct {
@@ -28,15 +29,15 @@ func NewUserService(userRepo UserRepository) UserService {
 	}
 }
 
-func (service *userServiceData) GetOneUserByEmail(email string) User {
+func (service *userServiceData) GetOneUserByEmail(email string) models.User {
 	search := dto.SearchUser{}
 	search.Email = email
 	row := service.userRepository.FindOne(search)
 	return row
 }
 
-func (service *userServiceData) CreateUser(user dto.CreateUserDTO) (User, error) {
-	newUser := User{}
+func (service *userServiceData) CreateUser(user dto.CreateUserDTO) (models.User, error) {
+	newUser := models.User{}
 	err := smapping.FillStruct(&newUser, smapping.MapFields(&user))
 	if err != nil {
 		log.Fatalf("error in map %v\n", err)
@@ -61,8 +62,8 @@ func (service *userServiceData) CreateUser(user dto.CreateUserDTO) (User, error)
 
 }
 
-func (service *userServiceData) UpdateUser(user dto.UpdateUserDTO) (User, error) {
-	userToUpdate := User{}
+func (service *userServiceData) UpdateUser(user dto.UpdateUserDTO) (models.User, error) {
+	userToUpdate := models.User{}
 	err := smapping.FillStruct(&userToUpdate, smapping.MapFields(&user))
 	if err != nil {
 		log.Fatalf("error in map %v\n", err)
@@ -83,7 +84,7 @@ func (service *userServiceData) UpdateUser(user dto.UpdateUserDTO) (User, error)
 	return service.userRepository.Update(userToUpdate)
 }
 
-func (sercive *userServiceData) CredentialUser(email string, password string) (User, error) {
+func (sercive *userServiceData) CredentialUser(email string, password string) (models.User, error) {
 	userSearchData := dto.SearchUser{}
 	userSearchData.Email = email
 	userCred := sercive.userRepository.FindOne(userSearchData)
@@ -97,7 +98,7 @@ func (sercive *userServiceData) CredentialUser(email string, password string) (U
 	return userCred, nil
 }
 
-func (sercive *userServiceData) ProfileUser(userId uint64) User {
+func (sercive *userServiceData) ProfileUser(userId uint64) models.User {
 	getById := dto.SearchWithAnd{}
 	getById.ID = userId
 	row := sercive.userRepository.FindAnd(getById)

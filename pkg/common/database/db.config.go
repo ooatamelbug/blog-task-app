@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/ooatamelbug/blog-task-app/pkg/users"
+	"github.com/ooatamelbug/blog-task-app/pkg/common/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -36,7 +36,7 @@ func ConnectionDB() *gorm.DB {
 	}
 
 	// make migrate for all model in app
-	db.AutoMigrate(&users.User{})
+	db.AutoMigrate(&models.User{}, &models.Post{})
 
 	// return db to use it
 	return db

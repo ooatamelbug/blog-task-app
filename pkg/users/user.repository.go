@@ -1,17 +1,18 @@
 package users
 
 import (
+	"github.com/ooatamelbug/blog-task-app/pkg/common/models"
 	"github.com/ooatamelbug/blog-task-app/pkg/users/dto"
 	"gorm.io/gorm"
 )
 
 type UserRepository interface {
-	Create(user User) (User, error)
-	FindOne(search dto.SearchUser) User
-	FindAll() []User
-	Update(user User) (User, error)
-	Delete(user User) User
-	FindAnd(searchWithAnd dto.SearchWithAnd) User
+	Create(user models.User) (models.User, error)
+	FindOne(search dto.SearchUser) models.User
+	FindAll() []models.User
+	Update(user models.User) (models.User, error)
+	Delete(user models.User) models.User
+	FindAnd(searchWithAnd dto.SearchWithAnd) models.User
 }
 
 type userConnection struct {
@@ -24,35 +25,35 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 	}
 }
 
-func (db *userConnection) Create(user User) (User, error) {
+func (db *userConnection) Create(user models.User) (models.User, error) {
 	err := db.connection.Save(&user)
 	return user, err.Error
 }
 
-func (db *userConnection) Update(user User) (User, error) {
+func (db *userConnection) Update(user models.User) (models.User, error) {
 	err := db.connection.Save(&user)
 	return user, err.Error
 }
 
-func (db *userConnection) Delete(user User) User {
+func (db *userConnection) Delete(user models.User) models.User {
 	db.connection.Delete(user)
 	return user
 }
 
-func (db *userConnection) FindOne(search dto.SearchUser) User {
-	var user User
+func (db *userConnection) FindOne(search dto.SearchUser) models.User {
+	var user models.User
 	db.connection.Where("email = ?", search.Email).Find(&user)
 	return user
 }
 
-func (db *userConnection) FindAll() []User {
-	var user []User
+func (db *userConnection) FindAll() []models.User {
+	var user []models.User
 	db.connection.Find(&user)
 	return user
 }
 
-func (db *userConnection) FindAnd(searchWithAnd dto.SearchWithAnd) User {
-	var user User
-	db.connection.Where(&User{ID: searchWithAnd.ID}).First(&user)
+func (db *userConnection) FindAnd(searchWithAnd dto.SearchWithAnd) models.User {
+	var user models.User
+	db.connection.Where(&models.User{ID: searchWithAnd.ID}).First(&user)
 	return user
 }
