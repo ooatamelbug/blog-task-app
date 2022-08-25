@@ -1,8 +1,9 @@
 package users
 
 import (
-	"fmt"
+	"errors"
 	"log"
+	"os/exec"
 
 	"github.com/mashingan/smapping"
 	"github.com/ooatamelbug/blog-task-app/pkg/users/dto"
@@ -10,58 +11,57 @@ import (
 )
 
 type UserService interface {
-	CreateUser(user dto.CreateUserDTO) User
-	GetOneUserByEmail(email string) (User, error)
-	UpdateUser(user dto.UpdateUserDTO) User
-	CredentialUser(email string, password string) User
+	CreateUser(user dto.CreateUserDTO) (User, error)
+	GetOneUserByEmail(email string) User
+	UpdateUser(user dto.UpdateUserDTO) (User, error)
+	CredentialUser(email string, password string) (User, error)
 	ProfileUser(userId uint64) User
 }
 
-type userService struct {
+type userServiceData struct {
 	userRepository UserRepository
 }
 
 func NewUserService(userRepo UserRepository) UserService {
-	return &userService{
+	return &userServiceData{
 		userRepository: userRepo,
 	}
 }
 
-func (service *userService) GetOneUserByEmail(email string) (User, error) {
+func (service *userServiceData) GetOneUserByEmail(email string) User {
 	search := dto.SearchUser{}
 	search.Email = email
-	row, result := service.userRepository.FindOne(search)
-	// if result.Error != nil {
-	// 	log.Fatalf("error in get data %v\n", result.Error)
-	// }
-	if result.Error != nil {
-		return row, result.Error
-	}
-	return row, nil
+	row := service.userRepository.FindOne(search)
+	return row
 }
 
-func (service *userService) CreateUser(user dto.CreateUserDTO) User {
+func (service *userServiceData) CreateUser(user dto.CreateUserDTO) (User, error) {
 	newUser := User{}
 	err := smapping.FillStruct(&newUser, smapping.MapFields(&user))
 	if err != nil {
 		log.Fatalf("error in map %v\n", err)
+		return newUser, err
 	}
 
-	row, err := service.GetOneUserByEmail(user.Email)
-	if err == nil {
-		fmt.Printf("%+v\n", row)
-		log.Fatalf("this email is used %v\n", err)
+	row := service.GetOneUserByEmail(user.Email)
+	if row.Email != "" {
+		return row, errors.New("this email is used before")
 	}
+
+	out, err := exec.Command("uuidgen").Output()
+	if err != nil {
+		return newUser, err
+	}
+	newUser.UID = string(out)
 
 	hashPassword := hashAndSalt([]byte(newUser.Password))
 	newUser.Password = hashPassword
 
-	res, id := service.userRepository.Create(newUser)
-	res.ID = id
-	return res
+	return service.userRepository.Create(newUser)
+
 }
 
-func (service *userService) UpdateUser(user dto.UpdateUserDTO) User {
+func (service *userServiceData) UpdateUser(user dto.UpdateUserDTO) (User, error) {
 	userToUpdate := User{}
 	err := smapping.FillStruct(&userToUpdate, smapping.MapFields(&user))
 	if err != nil {
@@ -69,10 +69,9 @@ func (service *userService) UpdateUser(user dto.UpdateUserDTO) User {
 	}
 
 	if user.Email != "" {
-		row, err := service.GetOneUserByEmail(user.Email)
-		if err == nil && row.ID != user.ID {
-			fmt.Printf("%+v\n", row)
-			log.Fatalf("this email is used %v\n", err)
+		row := service.GetOneUserByEmail(user.Email)
+		if row.ID != user.ID {
+			return userToUpdate, errors.New("this email is used before")
 		}
 	}
 
@@ -81,25 +80,24 @@ func (service *userService) UpdateUser(user dto.UpdateUserDTO) User {
 		userToUpdate.Password = hashPassword
 	}
 
-	service.userRepository.Update(userToUpdate)
-	return userToUpdate
+	return service.userRepository.Update(userToUpdate)
 }
 
-func (sercive *userService) CredentialUser(email string, password string) User {
+func (sercive *userServiceData) CredentialUser(email string, password string) (User, error) {
 	userSearchData := dto.SearchUser{}
 	userSearchData.Email = email
-	userCred, res := sercive.userRepository.FindOne(userSearchData)
-	if res.Error != nil {
-		panic("error in email")
+	userCred := sercive.userRepository.FindOne(userSearchData)
+	if userCred.Email == "" {
+		return userCred, errors.New("this email is not correct")
 	}
 
 	if comparePasswordFor := ComparePassword(userCred.Password, []byte(password)); !comparePasswordFor {
-		panic("password error")
+		return userCred, errors.New("this password is not correct")
 	}
-	return userCred
+	return userCred, nil
 }
 
-func (sercive *userService) ProfileUser(userId uint64) User {
+func (sercive *userServiceData) ProfileUser(userId uint64) User {
 	getById := dto.SearchWithAnd{}
 	getById.ID = userId
 	row := sercive.userRepository.FindAnd(getById)

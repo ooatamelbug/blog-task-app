@@ -6,10 +6,10 @@ import (
 )
 
 type UserRepository interface {
-	Create(user User) (User, uint64)
-	FindOne(search dto.SearchUser) (User, *gorm.DB)
+	Create(user User) (User, error)
+	FindOne(search dto.SearchUser) User
 	FindAll() []User
-	Update(user User) User
+	Update(user User) (User, error)
 	Delete(user User) User
 	FindAnd(searchWithAnd dto.SearchWithAnd) User
 }
@@ -24,14 +24,14 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 	}
 }
 
-func (db *userConnection) Create(user User) (User, uint64) {
-	db.connection.Save(user)
-	return user, user.ID
+func (db *userConnection) Create(user User) (User, error) {
+	err := db.connection.Save(&user)
+	return user, err.Error
 }
 
-func (db *userConnection) Update(user User) User {
-	db.connection.Save(user)
-	return user
+func (db *userConnection) Update(user User) (User, error) {
+	err := db.connection.Save(&user)
+	return user, err.Error
 }
 
 func (db *userConnection) Delete(user User) User {
@@ -39,10 +39,10 @@ func (db *userConnection) Delete(user User) User {
 	return user
 }
 
-func (db *userConnection) FindOne(search dto.SearchUser) (User, *gorm.DB) {
+func (db *userConnection) FindOne(search dto.SearchUser) User {
 	var user User
-	result := db.connection.Where("id = ?", search.UserId).Or("email = ?", search.Email).Find(&user)
-	return user, result
+	db.connection.Where("email = ?", search.Email).Find(&user)
+	return user
 }
 
 func (db *userConnection) FindAll() []User {

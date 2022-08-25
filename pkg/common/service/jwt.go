@@ -8,7 +8,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
-type JwtService interface {
+type JWTService interface {
 	GenerateToken(userId uint64, email string) string
 	ValidateToken(token string) (*jwt.Token, error)
 }
@@ -20,21 +20,21 @@ type jwtUserClaim struct {
 }
 
 type jwtService struct {
-	secertKey string
+	secretKey string
 	issuer    string
 }
 
-func NewJwtService(typeJwt string) JwtService {
+func NewJWTService() JWTService {
 	return &jwtService{
 		issuer:    "ydhrub",
-		secertKey: os.Getenv("SECERTKEY"),
+		secretKey: os.Getenv("SECERTKEY"),
 	}
 }
 
-func (jwtServ *jwtService) GenerateToken(userId uint64, email string) string {
+func (jwtServ *jwtService) GenerateToken(UserID uint64, Email string) string {
 	claims := &jwtUserClaim{
-		UserID: userId,
-		Email:  email,
+		UserID,
+		Email,
 		jwt.StandardClaims{
 			ExpiresAt: time.Now().AddDate(1, 0, 0).Unix(),
 			Issuer:    jwtServ.issuer,
@@ -42,9 +42,9 @@ func (jwtServ *jwtService) GenerateToken(userId uint64, email string) string {
 		},
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	t, err := token.SignedString([]byte(jwtServ.secertKey))
+	t, err := token.SignedString([]byte(jwtServ.secretKey))
 	if err != nil {
 		panic(err)
 	}
@@ -56,6 +56,6 @@ func (jwtServ *jwtService) ValidateToken(token string) (*jwt.Token, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected singin method %v\n", t.Header["alg"])
 		}
-		return []byte(jwtServ.secertKey), nil
+		return []byte(jwtServ.secretKey), nil
 	})
 }

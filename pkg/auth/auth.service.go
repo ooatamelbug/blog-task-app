@@ -8,30 +8,37 @@ import (
 )
 
 type AuthService interface {
-	SignUpUser(createUser dto.CreateUserDTO) string
-	SignInUser(loginData authdto.Login) string
+	SignUpUser(createUser dto.CreateUserDTO) (string, error)
+	SignInUser(loginData authdto.Login) (string, error)
 }
 
 type authSerice struct {
 	userService users.UserService
-	jwtService  services.JwtService
+	jwtService  services.JWTService
 }
 
-func NewAuthService(userServe users.UserService, jwtServ services.JwtService) AuthService {
+func NewAuthService(userServe users.UserService, jwtServ services.JWTService) AuthService {
 	return &authSerice{
 		userService: userServe,
 		jwtService:  jwtServ,
 	}
 }
 
-func (authServ *authSerice) SignUpUser(createUser dto.CreateUserDTO) string {
-	user := authServ.userService.CreateUser(createUser)
-	token := authServ.jwtService.GenerateToken(user.ID, user.Email)
-	return token
+func (authServ *authSerice) SignUpUser(createUser dto.CreateUserDTO) (string, error) {
+	user, err := authServ.userService.CreateUser(createUser)
+	var token string
+	if err == nil {
+		token = authServ.jwtService.GenerateToken(user.ID, user.Email)
+	}
+	return token, err
 }
 
-func (authServ *authSerice) SignInUser(loginData authdto.Login) string {
-	user := authServ.userService.CredentialUser(loginData.Email, loginData.Password)
-	token := authServ.jwtService.GenerateToken(user.ID, user.Email)
-	return token
+func (authServ *authSerice) SignInUser(loginData authdto.Login) (string, error) {
+	user, err := authServ.userService.CredentialUser(loginData.Email, loginData.Password)
+	var token string
+	if err == nil {
+		token = authServ.jwtService.GenerateToken(user.ID, user.Email)
+		return token, nil
+	}
+	return "", err
 }

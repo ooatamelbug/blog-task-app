@@ -3,15 +3,16 @@ package middleware
 import (
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	services "github.com/ooatamelbug/blog-task-app/pkg/common/service"
 )
 
-func Auth(jwtService services.JwtService) gin.HandlerFunc {
+func Auth(jwtService services.JWTService) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		authHeader := ctx.GetHeader("Authorization")
+		authHeader := strings.Split(ctx.GetHeader("Authorization"), "Bearer ")[1]
 
 		if authHeader == "" {
 			response := services.ReturnResponse(false, "not Authorization", nil, "", "no token")
@@ -28,6 +29,6 @@ func Auth(jwtService services.JwtService) gin.HandlerFunc {
 			response := services.ReturnResponse(false, "not Authorization", nil, "", err.Error())
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, response)
 		}
-
+		ctx.Next()
 	}
 }

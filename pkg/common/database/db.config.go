@@ -3,16 +3,16 @@ package database
 import (
 	"fmt"
 	"os"
-	"os/user"
 
 	"github.com/joho/godotenv"
+	"github.com/ooatamelbug/blog-task-app/pkg/users"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 func ConnectionDB() *gorm.DB {
 	// load .env file
-	err := godotenv.Load()
+	err := godotenv.Load("./pkg/common/env/.env")
 	if err != nil {
 		panic("faild to load env")
 	}
@@ -25,8 +25,7 @@ func ConnectionDB() *gorm.DB {
 	dbName := os.Getenv("DB_NAME")
 
 	// make uri from .env to connect db
-	dns := fmt.Sprint("host=", dbHost, "user=", dbUser, "password=", dbPassword, "name=", dbName, "port=", dbPort, "?-charset=utf8&parseTime=True")
-	fmt.Println(dns)
+	dns := fmt.Sprint("host=", dbHost, " user=", dbUser, " password=", dbPassword, " dbname=", dbName, " port=", dbPort)
 
 	// open connection with postgres db with dns uri of db and pointer gorm config
 	db, err := gorm.Open(postgres.Open(dns), &gorm.Config{})
@@ -37,7 +36,7 @@ func ConnectionDB() *gorm.DB {
 	}
 
 	// make migrate for all model in app
-	db.AutoMigrate(&user.User{})
+	db.AutoMigrate(&users.User{})
 
 	// return db to use it
 	return db
