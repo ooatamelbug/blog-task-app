@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/ooatamelbug/blog-task-app/pkg/auth"
+	"github.com/ooatamelbug/blog-task-app/pkg/comments"
 	"github.com/ooatamelbug/blog-task-app/pkg/common/database"
 	"github.com/ooatamelbug/blog-task-app/pkg/common/middleware"
 	services "github.com/ooatamelbug/blog-task-app/pkg/common/service"
@@ -20,16 +21,19 @@ import (
 )
 
 var (
-	db             *gorm.DB             = database.ConnectionDB()
-	userRepository users.UserRepository = users.NewUserRepository(db)
-	userService    users.UserService    = users.NewUserService(userRepository)
-	userController users.UserController = users.NewUserController(userService)
-	jwtService     services.JWTService  = services.NewJWTService()
-	authService    auth.AuthService     = auth.NewAuthService(userService, jwtService)
-	authController auth.AuthController  = auth.NewAuthController(authService)
-	postRepository posts.PostRepository = posts.NewPostRepository(db)
-	postService    posts.PostService    = posts.NewPostService(postRepository)
-	postController posts.PostController = posts.NewPostController(postService, jwtService)
+	db                *gorm.DB                   = database.ConnectionDB()
+	userRepository    users.UserRepository       = users.NewUserRepository(db)
+	userService       users.UserService          = users.NewUserService(userRepository)
+	userController    users.UserController       = users.NewUserController(userService)
+	jwtService        services.JWTService        = services.NewJWTService()
+	authService       auth.AuthService           = auth.NewAuthService(userService, jwtService)
+	authController    auth.AuthController        = auth.NewAuthController(authService)
+	postRepository    posts.PostRepository       = posts.NewPostRepository(db)
+	postService       posts.PostService          = posts.NewPostService(postRepository)
+	postController    posts.PostController       = posts.NewPostController(postService, jwtService)
+	commentRepository comments.CommentRepository = comments.NewCommentRepository(db)
+	commentService    comments.CommentService    = comments.NewCommentService(commentRepository)
+	commentController comments.CommentController = comments.NewCommentController(commentService, jwtService)
 )
 
 func main() {
@@ -59,6 +63,16 @@ func main() {
 		postRoutes.DELETE("/delete/", postController.DeletePost)
 	}
 
+	// post routes
+	commentRoutes := server.Group("/api/comment").Use(middleware.Auth(jwtService))
+	{
+		commentRoutes.GET("/:id", commentController.FindComment)
+		commentRoutes.GET("/all/", commentController.GetAllComment)
+		commentRoutes.POST("/create/", commentController.CreateComment)
+		commentRoutes.PUT("/update/", commentController.UpdateComment)
+		commentRoutes.DELETE("/delete/", commentController.DeleteComment)
+	}
+
 	srv := &http.Server{
 		Addr:    ":5000",
 		Handler: server,
@@ -81,5 +95,4 @@ func main() {
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatalf("server force Shutdown %v\n", err)
 	}
-	// server.Run(":5000")
 }

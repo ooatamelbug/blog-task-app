@@ -47,7 +47,7 @@ func (commentControl *commentController) CreateComment(ctx *gin.Context) {
 
 	createComment.User = userId
 	comment, err := commentControl.posyservice.CreateComment(createComment)
-	if comment.Title == "" && err != nil {
+	if comment.Body == "" && err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 	}
@@ -78,7 +78,7 @@ func (commentControl *commentController) UpdateComment(ctx *gin.Context) {
 	}
 	createComment.User = userId
 	comment, err := commentControl.posyservice.UpdateComment(createComment, idUint)
-	if comment.Title == "" && err != nil {
+	if comment.Body == "" && err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 	}
@@ -102,7 +102,7 @@ func (commentControl *commentController) DeleteComment(ctx *gin.Context) {
 	}
 
 	comment, err := commentControl.posyservice.DeleteComment(idUint, userId)
-	if comment.Title == "" && err != nil {
+	if comment.Body == "" && err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 	}
@@ -119,7 +119,7 @@ func (commentControl *commentController) FindComment(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 	}
 	comment, err := commentControl.posyservice.GetComment(idUint)
-	if comment.Title == "" && err != nil {
+	if comment.Body == "" && err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 	}
@@ -136,7 +136,7 @@ func (commentControl *commentController) GetAllComment(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 	}
 	comment, err := commentControl.posyservice.GetComment(idUint)
-	if comment.Title == "" && err != nil {
+	if comment.Body == "" && err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 	}

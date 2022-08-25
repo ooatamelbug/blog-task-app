@@ -62,7 +62,7 @@ func (commentServ *commentService) UpdateComment(comment dto.CreateCommentDto, c
 
 func (commentServ *commentService) DeleteComment(commentId uint64, userId uint64) (models.Comment, error) {
 	comment := commentServ.commentRepository.FindOne(commentId)
-	if comment.Title == "" {
+	if comment.Body == "" {
 		return comment, errors.New("no comment")
 	}
 	if comment.User.ID != userId {
