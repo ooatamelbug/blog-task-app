@@ -25,11 +25,13 @@ func NewPostRepository(db *gorm.DB) PostRepository {
 
 func (postRelation *postRepository) Create(post models.Post) (models.Post, error) {
 	err := postRelation.postTable.Save(post)
+	postRelation.postTable.Preload("User").Find(&post)
 	return post, err.Error
 }
 
 func (postRelation *postRepository) Update(post models.Post) (models.Post, error) {
 	err := postRelation.postTable.Save(post)
+	postRelation.postTable.Preload("User").Find(&post)
 	return post, err.Error
 }
 
@@ -40,12 +42,12 @@ func (postRelation *postRepository) Delete(post models.Post) (models.Post, error
 
 func (postRelation *postRepository) FindOne(postId uint64) models.Post {
 	var post models.Post
-	postRelation.postTable.Where("id = ?", postId).First(&post)
+	postRelation.postTable.Preload("User").Find(&post, postId)
 	return post
 }
 
 func (postRelation *postRepository) Find() []models.Post {
 	var posts []models.Post
-	postRelation.postTable.Find(&posts)
+	postRelation.postTable.Preload("User").Find(&posts)
 	return posts
 }

@@ -12,7 +12,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/ooatamelbug/blog-task-app/pkg/auth"
 	"github.com/ooatamelbug/blog-task-app/pkg/common/database"
+	"github.com/ooatamelbug/blog-task-app/pkg/common/middleware"
 	services "github.com/ooatamelbug/blog-task-app/pkg/common/service"
+	"github.com/ooatamelbug/blog-task-app/pkg/posts"
 	"github.com/ooatamelbug/blog-task-app/pkg/users"
 	"gorm.io/gorm"
 )
@@ -25,21 +27,38 @@ var (
 	jwtService     services.JWTService  = services.NewJWTService()
 	authService    auth.AuthService     = auth.NewAuthService(userService, jwtService)
 	authController auth.AuthController  = auth.NewAuthController(authService)
+	postRepository posts.PostRepository = posts.NewPostRepository(db)
+	postService    posts.PostService    = posts.NewPostService(postRepository)
+	postController posts.PostController = posts.NewPostController(postService, jwtService)
 )
 
 func main() {
 	defer database.CloseConnectionDB(db)
 	server := gin.Default()
 
+	// user routes
 	userRoutes := server.Group("/api/user")
 	{
 		userRoutes.GET("/", userController.Index)
 	}
+
+	// auth routes
 	authRoutes := server.Group("/api/auth")
 	{
 		authRoutes.POST("/signin/", authController.SignIn)
 		authRoutes.POST("/signup/", authController.SignUp)
 	}
+
+	// post routes
+	postRoutes := server.Group("/api/post").Use(middleware.Auth(jwtService))
+	{
+		postRoutes.GET("/:id", postController.FindPost)
+		postRoutes.GET("/all/", postController.GetAllPost)
+		postRoutes.POST("/create/", postController.CreatePost)
+		postRoutes.PUT("/update/", postController.UpdatePost)
+		postRoutes.DELETE("/delete/", postController.DeletePost)
+	}
+
 	srv := &http.Server{
 		Addr:    ":5000",
 		Handler: server,

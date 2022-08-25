@@ -1,4 +1,4 @@
-package posts
+package comments
 
 import (
 	"fmt"
@@ -7,56 +7,56 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/ooatamelbug/blog-task-app/pkg/comments/dto"
 	services "github.com/ooatamelbug/blog-task-app/pkg/common/service"
-	"github.com/ooatamelbug/blog-task-app/pkg/posts/dto"
 )
 
-type PostController interface {
-	CreatePost(ctx *gin.Context)
-	UpdatePost(ctx *gin.Context)
-	DeletePost(ctx *gin.Context)
-	FindPost(ctx *gin.Context)
-	GetAllPost(ctx *gin.Context)
+type CommentController interface {
+	CreateComment(ctx *gin.Context)
+	UpdateComment(ctx *gin.Context)
+	DeleteComment(ctx *gin.Context)
+	FindComment(ctx *gin.Context)
+	GetAllComment(ctx *gin.Context)
 	GetUserIdByToken(token string) (uint64, error)
 }
 
-type postController struct {
-	posyservice PostService
+type commentController struct {
+	posyservice CommentService
 	jwtServ     services.JWTService
 }
 
-func NewPostController(postServ PostService, jwtservice services.JWTService) PostController {
-	return &postController{
-		posyservice: postServ,
+func NewCommentController(commentServ CommentService, jwtservice services.JWTService) CommentController {
+	return &commentController{
+		posyservice: commentServ,
 		jwtServ:     jwtservice,
 	}
 }
 
-func (postControl *postController) CreatePost(ctx *gin.Context) {
-	var createPost dto.CreatePostDto
-	errDto := ctx.BindJSON(&createPost)
+func (commentControl *commentController) CreateComment(ctx *gin.Context) {
+	var createComment dto.CreateCommentDto
+	errDto := ctx.BindJSON(&createComment)
 	if errDto != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", errDto.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 	}
-	userId, err := postControl.GetUserIdByToken(ctx.GetHeader("Authorization"))
+	userId, err := commentControl.GetUserIdByToken(ctx.GetHeader("Authorization"))
 	if err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", errDto.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 	}
 
-	createPost.User = userId
-	post, err := postControl.posyservice.CreatePost(createPost)
-	if post.Title == "" && err != nil {
+	createComment.User = userId
+	comment, err := commentControl.posyservice.CreateComment(createComment)
+	if comment.Title == "" && err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 	}
 
-	response := services.ReturnResponse(true, "go", post, "", "")
+	response := services.ReturnResponse(true, "go", comment, "", "")
 	ctx.JSON(http.StatusCreated, response)
 }
 
-func (postControl *postController) UpdatePost(ctx *gin.Context) {
+func (commentControl *commentController) UpdateComment(ctx *gin.Context) {
 	id := ctx.Param("id")
 	idUint, err := strconv.ParseUint(id, 0, 0)
 	if err != nil {
@@ -64,30 +64,30 @@ func (postControl *postController) UpdatePost(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 	}
 
-	var createPost dto.CreatePostDto
-	errDto := ctx.BindJSON(&createPost)
+	var createComment dto.CreateCommentDto
+	errDto := ctx.BindJSON(&createComment)
 	if errDto != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", errDto.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 	}
 
-	userId, errToken := postControl.GetUserIdByToken(ctx.GetHeader("Authorization"))
+	userId, errToken := commentControl.GetUserIdByToken(ctx.GetHeader("Authorization"))
 	if err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", errToken.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 	}
-	createPost.User = userId
-	post, err := postControl.posyservice.UpdatePost(createPost, idUint)
-	if post.Title == "" && err != nil {
+	createComment.User = userId
+	comment, err := commentControl.posyservice.UpdateComment(createComment, idUint)
+	if comment.Title == "" && err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 	}
 
-	response := services.ReturnResponse(true, "go", post, "", "")
+	response := services.ReturnResponse(true, "go", comment, "", "")
 	ctx.JSON(http.StatusCreated, response)
 }
 
-func (postControl *postController) DeletePost(ctx *gin.Context) {
+func (commentControl *commentController) DeleteComment(ctx *gin.Context) {
 	id := ctx.Param("id")
 	idUint, err := strconv.ParseUint(id, 0, 0)
 	if err != nil {
@@ -95,59 +95,59 @@ func (postControl *postController) DeletePost(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 	}
 
-	userId, err := postControl.GetUserIdByToken(ctx.GetHeader("Authorization"))
+	userId, err := commentControl.GetUserIdByToken(ctx.GetHeader("Authorization"))
 	if err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 	}
 
-	post, err := postControl.posyservice.DeletePost(idUint, userId)
-	if post.Title == "" && err != nil {
+	comment, err := commentControl.posyservice.DeleteComment(idUint, userId)
+	if comment.Title == "" && err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 	}
 
-	response := services.ReturnResponse(true, "go", post, "", "")
+	response := services.ReturnResponse(true, "go", comment, "", "")
 	ctx.JSON(http.StatusCreated, response)
 }
 
-func (postControl *postController) FindPost(ctx *gin.Context) {
+func (commentControl *commentController) FindComment(ctx *gin.Context) {
 	id := ctx.Param("id")
 	idUint, err := strconv.ParseUint(id, 0, 64)
 	if err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 	}
-	post, err := postControl.posyservice.GetPost(idUint)
-	if post.Title == "" && err != nil {
+	comment, err := commentControl.posyservice.GetComment(idUint)
+	if comment.Title == "" && err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 	}
 
-	response := services.ReturnResponse(true, "go", post, "", "")
+	response := services.ReturnResponse(true, "go", comment, "", "")
 	ctx.JSON(http.StatusCreated, response)
 }
 
-func (postControl *postController) GetAllPost(ctx *gin.Context) {
+func (commentControl *commentController) GetAllComment(ctx *gin.Context) {
 	id := ctx.Param("id")
 	idUint, err := strconv.ParseUint(id, 0, 0)
 	if err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 	}
-	post, err := postControl.posyservice.GetPost(idUint)
-	if post.Title == "" && err != nil {
+	comment, err := commentControl.posyservice.GetComment(idUint)
+	if comment.Title == "" && err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 	}
 
-	response := services.ReturnResponse(true, "go", post, "", "")
+	response := services.ReturnResponse(true, "go", comment, "", "")
 	ctx.JSON(http.StatusCreated, response)
 }
 
-func (postControl *postController) GetUserIdByToken(token string) (uint64, error) {
+func (commentControl *commentController) GetUserIdByToken(token string) (uint64, error) {
 	var userId uint64
-	payload, err := postControl.jwtServ.ValidateToken(token)
+	payload, err := commentControl.jwtServ.ValidateToken(token)
 	if err != nil {
 		return userId, err
 	}

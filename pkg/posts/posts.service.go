@@ -10,8 +10,8 @@ import (
 
 type PostService interface {
 	CreatePost(post dto.CreatePostDto) (models.Post, error)
-	UpdatePost(post dto.CreatePostDto) (models.Post, error)
-	DeletePost(post dto.CreatePostDto) (models.Post, error)
+	UpdatePost(post dto.CreatePostDto, postId uint64) (models.Post, error)
+	DeletePost(postId uint64, userId uint64) (models.Post, error)
 	GetPost(postId uint64) (models.Post, error)
 	GetPosts() []models.Post
 }
@@ -39,7 +39,15 @@ func (postserv *postService) CreatePost(post dto.CreatePostDto) (models.Post, er
 	return row, nil
 }
 
-func (postserv *postService) UpdatePost(post dto.CreatePostDto) (models.Post, error) {
+func (postserv *postService) UpdatePost(post dto.CreatePostDto, postId uint64) (models.Post, error) {
+	getpost := postserv.postRepository.FindOne(postId)
+	if post.Title == "" {
+		return getpost, errors.New("no post")
+	}
+	if getpost.User.ID != post.User {
+		return getpost, errors.New("not allowed to Update this post")
+	}
+
 	updatePost := models.Post{}
 	err := smapping.FillStruct(&updatePost, smapping.MapFields(&post))
 	if err != nil {
@@ -52,15 +60,17 @@ func (postserv *postService) UpdatePost(post dto.CreatePostDto) (models.Post, er
 	return row, nil
 }
 
-func (postserv *postService) DeletePost(post dto.CreatePostDto) (models.Post, error) {
-	deletePost := models.Post{}
-	err := smapping.FillStruct(&deletePost, smapping.MapFields(&post))
-	if err != nil {
-		return deletePost, err
+func (postserv *postService) DeletePost(postId uint64, userId uint64) (models.Post, error) {
+	post := postserv.postRepository.FindOne(postId)
+	if post.Title == "" {
+		return post, errors.New("no post")
 	}
-	row, err := postserv.postRepository.Delete(deletePost)
+	if post.User.ID != userId {
+		return post, errors.New("not allowed to delete this post")
+	}
+	row, err := postserv.postRepository.Delete(post)
 	if err != nil {
-		return deletePost, err
+		return post, err
 	}
 	return row, nil
 }
