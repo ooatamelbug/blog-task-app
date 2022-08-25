@@ -3,7 +3,7 @@ package models
 import "gorm.io/gorm"
 
 type User struct {
-	gorm.Model
+	*gorm.Model
 	ID           uint64     `gorm:"primary_key:auto_increment" json:"id"`
 	UID          string     `gorm:"type: varchar(255)" json:"uid"`
 	FirstName    string     `gorm:"type: varchar(255)" json:"firstname"`

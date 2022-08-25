@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
@@ -21,35 +22,39 @@ type PostController interface {
 }
 
 type postController struct {
-	posyservice PostService
+	postService PostService
 	jwtServ     services.JWTService
 }
 
 func NewPostController(postServ PostService, jwtservice services.JWTService) PostController {
 	return &postController{
-		posyservice: postServ,
+		postService: postServ,
 		jwtServ:     jwtservice,
 	}
 }
 
 func (postControl *postController) CreatePost(ctx *gin.Context) {
 	var createPost dto.CreatePostDto
+	userId, err := postControl.GetUserIdByToken(strings.Split(ctx.GetHeader("Authorization"), " ")[1])
+	if err != nil {
+		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
+	}
+
+	createPost.UserID = userId
 	errDto := ctx.BindJSON(&createPost)
 	if errDto != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", errDto.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
-	}
-	userId, err := postControl.GetUserIdByToken(ctx.GetHeader("Authorization"))
-	if err != nil {
-		response := services.ReturnResponse(false, "error in input data", nil, "", errDto.Error())
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
 	}
 
-	createPost.User = userId
-	post, err := postControl.posyservice.CreatePost(createPost)
+	post, err := postControl.postService.CreatePost(createPost)
 	if post.Title == "" && err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
 	}
 
 	response := services.ReturnResponse(true, "go", post, "", "")
@@ -62,22 +67,26 @@ func (postControl *postController) UpdatePost(ctx *gin.Context) {
 	if err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
 	}
 
 	var createPost dto.CreatePostDto
+	userId, errToken := postControl.GetUserIdByToken(strings.Split(ctx.GetHeader("Authorization"), " ")[1])
+	if errToken != nil {
+		response := services.ReturnResponse(false, "error in input data", nil, "", errToken.Error())
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
+	}
+	createPost.UserID = userId
+
 	errDto := ctx.BindJSON(&createPost)
 	if errDto != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", errDto.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
 	}
 
-	userId, errToken := postControl.GetUserIdByToken(ctx.GetHeader("Authorization"))
-	if err != nil {
-		response := services.ReturnResponse(false, "error in input data", nil, "", errToken.Error())
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
-	}
-	createPost.User = userId
-	post, err := postControl.posyservice.UpdatePost(createPost, idUint)
+	post, err := postControl.postService.UpdatePost(createPost, idUint)
 	if post.Title == "" && err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
@@ -93,18 +102,21 @@ func (postControl *postController) DeletePost(ctx *gin.Context) {
 	if err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
 	}
 
-	userId, err := postControl.GetUserIdByToken(ctx.GetHeader("Authorization"))
-	if err != nil {
-		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
+	userId, errToken := postControl.GetUserIdByToken(strings.Split(ctx.GetHeader("Authorization"), " ")[1])
+	if errToken != nil {
+		response := services.ReturnResponse(false, "error in input data", nil, "", errToken.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
 	}
 
-	post, err := postControl.posyservice.DeletePost(idUint, userId)
+	post, err := postControl.postService.DeletePost(idUint, userId)
 	if post.Title == "" && err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
 	}
 
 	response := services.ReturnResponse(true, "go", post, "", "")
@@ -118,7 +130,7 @@ func (postControl *postController) FindPost(ctx *gin.Context) {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 	}
-	post, err := postControl.posyservice.GetPost(idUint)
+	post, err := postControl.postService.GetPost(idUint)
 	if post.Title == "" && err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
@@ -129,16 +141,11 @@ func (postControl *postController) FindPost(ctx *gin.Context) {
 }
 
 func (postControl *postController) GetAllPost(ctx *gin.Context) {
-	id := ctx.Param("id")
-	idUint, err := strconv.ParseUint(id, 0, 0)
-	if err != nil {
-		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
+	post := postControl.postService.GetPosts()
+	if length := len(post); length < 0 {
+		response := services.ReturnResponse(false, "error in input data", nil, "", "error")
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
-	}
-	post, err := postControl.posyservice.GetPost(idUint)
-	if post.Title == "" && err != nil {
-		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
 	}
 
 	response := services.ReturnResponse(true, "go", post, "", "")

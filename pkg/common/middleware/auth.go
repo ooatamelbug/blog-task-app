@@ -3,6 +3,7 @@ package middleware
 import (
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
@@ -22,17 +23,17 @@ func Auth(jwtService services.JWTService) gin.HandlerFunc {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, response)
 			return
 		}
+		authHeader = strings.Split(authHeader, " ")[1]
 		payload, err := jwtService.ValidateToken(authHeader)
 		if payload.Valid {
 			claims := payload.Claims.(jwt.MapClaims)
-			log.Panicln("claims[user_id]:", claims["user_id"])
-			log.Panicln("claims[issuer]:", claims["issuer"])
+			log.Println(claims)
 		} else {
 			log.Panicln(err)
 			response := services.ReturnResponse(false, "not Authorization", nil, "", err.Error())
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, response)
 		}
-		ctx.Set(AuthPayload, payload)
+		// ctx.Set(AuthPayload, payload)
 		ctx.Next()
 	}
 }

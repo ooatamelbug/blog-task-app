@@ -42,18 +42,18 @@ func (db *userConnection) Delete(user models.User) models.User {
 
 func (db *userConnection) FindOne(search dto.SearchUser) models.User {
 	var user models.User
-	db.connection.Where("email = ?", search.Email).Find(&user)
+	db.connection.Preload("Post").Preload("CommentsList").Where("email = ?", search.Email).Find(&user)
 	return user
 }
 
 func (db *userConnection) FindAll() []models.User {
 	var user []models.User
-	db.connection.Find(&user)
+	db.connection.Preload("PostsList").Preload("CommentsList").Find(&user)
 	return user
 }
 
 func (db *userConnection) FindAnd(searchWithAnd dto.SearchWithAnd) models.User {
 	var user models.User
-	db.connection.Where(&models.User{ID: searchWithAnd.ID}).First(&user)
+	db.connection.Preload("PostsList").Preload("CommentsList").Where(&models.User{ID: searchWithAnd.ID}).First(&user)
 	return user
 }

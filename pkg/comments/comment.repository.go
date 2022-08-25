@@ -24,19 +24,22 @@ func NewCommentRepository(db *gorm.DB) CommentRepository {
 }
 
 func (commenRelation *commentRepository) Create(post models.Comment) (models.Comment, error) {
-	err := commenRelation.commentTable.Save(post)
+	err := commenRelation.commentTable.Save(&post)
+	if err != nil {
+		return post, err.Error
+	}
 	commenRelation.commentTable.Preload("User").Find(&post)
-	return post, err.Error
+	return post, nil
 }
 
 func (commenRelation *commentRepository) Update(post models.Comment) (models.Comment, error) {
-	err := commenRelation.commentTable.Save(post)
+	err := commenRelation.commentTable.Save(&post)
 	commenRelation.commentTable.Preload("User").Find(&post)
 	return post, err.Error
 }
 
 func (commenRelation *commentRepository) Delete(post models.Comment) (models.Comment, error) {
-	err := commenRelation.commentTable.Delete(post)
+	err := commenRelation.commentTable.Delete(&post)
 	return post, err.Error
 }
 
@@ -48,6 +51,6 @@ func (commenRelation *commentRepository) FindOne(commentId uint64) models.Commen
 
 func (commenRelation *commentRepository) Find() []models.Comment {
 	var comments []models.Comment
-	commenRelation.commentTable.Preload("User").Preload("Post").Find(&comments)
+	commenRelation.commentTable.Preload("User").Find(&comments)
 	return comments
 }

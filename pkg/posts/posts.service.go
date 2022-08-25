@@ -44,15 +44,17 @@ func (postserv *postService) UpdatePost(post dto.CreatePostDto, postId uint64) (
 	if post.Title == "" {
 		return getpost, errors.New("no post")
 	}
-	if getpost.User.ID != post.User {
+	if getpost.User.ID != post.UserID {
 		return getpost, errors.New("not allowed to Update this post")
 	}
 
 	updatePost := models.Post{}
+
 	err := smapping.FillStruct(&updatePost, smapping.MapFields(&post))
 	if err != nil {
 		return updatePost, err
 	}
+	updatePost.ID = postId
 	row, err := postserv.postRepository.Update(updatePost)
 	if err != nil {
 		return updatePost, err

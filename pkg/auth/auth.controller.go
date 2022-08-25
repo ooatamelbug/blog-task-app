@@ -30,12 +30,14 @@ func (authuser *authController) SignUp(ctx *gin.Context) {
 	if errDto != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", errDto.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
 	}
 
 	token, err := authuser.authService.SignUpUser(createUser)
 	if token == "" && err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
 	}
 
 	response := services.ReturnResponse(true, "go", nil, token, "")
@@ -48,12 +50,14 @@ func (authuser *authController) SignIn(ctx *gin.Context) {
 	if errDto != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", errDto.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
 	}
 
 	token, err := authuser.authService.SignInUser(loginUser)
 	if token == "" && err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
 	}
 
 	response := services.ReturnResponse(true, "go", nil, token, "")

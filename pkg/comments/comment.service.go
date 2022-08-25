@@ -2,6 +2,7 @@ package comments
 
 import (
 	"errors"
+	"log"
 
 	"github.com/mashingan/smapping"
 	"github.com/ooatamelbug/blog-task-app/pkg/comments/dto"
@@ -41,10 +42,12 @@ func (commentServ *commentService) CreateComment(comment dto.CreateCommentDto) (
 
 func (commentServ *commentService) UpdateComment(comment dto.CreateCommentDto, commentId uint64) (models.Comment, error) {
 	getcomment := commentServ.commentRepository.FindOne(commentId)
+	log.Println(getcomment)
 	if comment.Body == "" {
 		return getcomment, errors.New("no comment")
 	}
-	if getcomment.User.ID != comment.User {
+
+	if getcomment.User.ID != comment.UserID {
 		return getcomment, errors.New("not allowed to Update this comment")
 	}
 
@@ -53,6 +56,7 @@ func (commentServ *commentService) UpdateComment(comment dto.CreateCommentDto, c
 	if err != nil {
 		return updateComment, err
 	}
+	updateComment.ID = commentId
 	row, err := commentServ.commentRepository.Update(updateComment)
 	if err != nil {
 		return updateComment, err

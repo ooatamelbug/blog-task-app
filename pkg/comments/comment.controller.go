@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
@@ -34,22 +35,26 @@ func NewCommentController(commentServ CommentService, jwtservice services.JWTSer
 
 func (commentControl *commentController) CreateComment(ctx *gin.Context) {
 	var createComment dto.CreateCommentDto
+	userId, err := commentControl.GetUserIdByToken(strings.Split(ctx.GetHeader("Authorization"), " ")[1])
+	if err != nil {
+		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
+	}
+
+	createComment.UserID = userId
+
 	errDto := ctx.BindJSON(&createComment)
 	if errDto != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", errDto.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
 	}
-	userId, err := commentControl.GetUserIdByToken(ctx.GetHeader("Authorization"))
-	if err != nil {
-		response := services.ReturnResponse(false, "error in input data", nil, "", errDto.Error())
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
-	}
-
-	createComment.User = userId
 	comment, err := commentControl.posyservice.CreateComment(createComment)
 	if comment.Body == "" && err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
 	}
 
 	response := services.ReturnResponse(true, "go", comment, "", "")
@@ -62,25 +67,30 @@ func (commentControl *commentController) UpdateComment(ctx *gin.Context) {
 	if err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
 	}
 
 	var createComment dto.CreateCommentDto
+	userId, errToken := commentControl.GetUserIdByToken(strings.Split(ctx.GetHeader("Authorization"), " ")[1])
+	if errToken != nil {
+		response := services.ReturnResponse(false, "error in input data", nil, "", errToken.Error())
+		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
+	}
+	createComment.UserID = userId
+
 	errDto := ctx.BindJSON(&createComment)
 	if errDto != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", errDto.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
 	}
 
-	userId, errToken := commentControl.GetUserIdByToken(ctx.GetHeader("Authorization"))
-	if err != nil {
-		response := services.ReturnResponse(false, "error in input data", nil, "", errToken.Error())
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
-	}
-	createComment.User = userId
 	comment, err := commentControl.posyservice.UpdateComment(createComment, idUint)
 	if comment.Body == "" && err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
 	}
 
 	response := services.ReturnResponse(true, "go", comment, "", "")
@@ -93,18 +103,21 @@ func (commentControl *commentController) DeleteComment(ctx *gin.Context) {
 	if err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
 	}
 
-	userId, err := commentControl.GetUserIdByToken(ctx.GetHeader("Authorization"))
+	userId, err := commentControl.GetUserIdByToken(strings.Split(ctx.GetHeader("Authorization"), " ")[1])
 	if err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
 	}
 
 	comment, err := commentControl.posyservice.DeleteComment(idUint, userId)
 	if comment.Body == "" && err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
 	}
 
 	response := services.ReturnResponse(true, "go", comment, "", "")
@@ -117,11 +130,13 @@ func (commentControl *commentController) FindComment(ctx *gin.Context) {
 	if err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
 	}
 	comment, err := commentControl.posyservice.GetComment(idUint)
 	if comment.Body == "" && err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
 	}
 
 	response := services.ReturnResponse(true, "go", comment, "", "")
@@ -129,16 +144,11 @@ func (commentControl *commentController) FindComment(ctx *gin.Context) {
 }
 
 func (commentControl *commentController) GetAllComment(ctx *gin.Context) {
-	id := ctx.Param("id")
-	idUint, err := strconv.ParseUint(id, 0, 0)
-	if err != nil {
-		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
+	comment := commentControl.posyservice.GetComments()
+	if length := len(comment); length < 0 {
+		response := services.ReturnResponse(false, "error in input data", nil, "", "error")
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
-	}
-	comment, err := commentControl.posyservice.GetComment(idUint)
-	if comment.Body == "" && err != nil {
-		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
+		return
 	}
 
 	response := services.ReturnResponse(true, "go", comment, "", "")

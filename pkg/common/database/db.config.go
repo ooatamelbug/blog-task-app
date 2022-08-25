@@ -36,7 +36,7 @@ func ConnectionDB() *gorm.DB {
 	}
 
 	// make migrate for all model in app
-	db.AutoMigrate(&models.User{}, &models.Post{})
+	db.Debug().AutoMigrate(&models.User{}, &models.Post{}, &models.Comment{})
 
 	// return db to use it
 	return db
