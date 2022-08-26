@@ -1,13 +1,11 @@
 package posts
 
 import (
-	"fmt"
 	"net/http"
-	"strconv"
-	"strings"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/ooatamelbug/blog-task-app/pkg/common/helper"
+	"github.com/ooatamelbug/blog-task-app/pkg/common/middleware"
 	services "github.com/ooatamelbug/blog-task-app/pkg/common/service"
 	"github.com/ooatamelbug/blog-task-app/pkg/posts/dto"
 )
@@ -18,7 +16,6 @@ type PostController interface {
 	DeletePost(ctx *gin.Context)
 	FindPost(ctx *gin.Context)
 	GetAllPost(ctx *gin.Context)
-	GetUserIdByToken(token string) (uint64, error)
 }
 
 type postController struct {
@@ -34,13 +31,8 @@ func NewPostController(postServ PostService, jwtservice services.JWTService) Pos
 }
 
 func (postControl *postController) CreatePost(ctx *gin.Context) {
+	userId := ctx.GetUint64(middleware.AuthPayload)
 	var createPost dto.CreatePostDto
-	userId, err := postControl.GetUserIdByToken(strings.Split(ctx.GetHeader("Authorization"), " ")[1])
-	if err != nil {
-		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
-		return
-	}
 
 	createPost.UserID = userId
 	errDto := ctx.BindJSON(&createPost)
@@ -62,8 +54,7 @@ func (postControl *postController) CreatePost(ctx *gin.Context) {
 }
 
 func (postControl *postController) UpdatePost(ctx *gin.Context) {
-	id := ctx.Param("id")
-	idUint, err := strconv.ParseUint(id, 0, 0)
+	idUint, err := helper.ConvertToInt(ctx.Param("id"))
 	if err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
@@ -71,12 +62,8 @@ func (postControl *postController) UpdatePost(ctx *gin.Context) {
 	}
 
 	var createPost dto.CreatePostDto
-	userId, errToken := postControl.GetUserIdByToken(strings.Split(ctx.GetHeader("Authorization"), " ")[1])
-	if errToken != nil {
-		response := services.ReturnResponse(false, "error in input data", nil, "", errToken.Error())
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
-		return
-	}
+	userId := ctx.GetUint64(middleware.AuthPayload)
+
 	createPost.UserID = userId
 
 	errDto := ctx.BindJSON(&createPost)
@@ -97,20 +84,14 @@ func (postControl *postController) UpdatePost(ctx *gin.Context) {
 }
 
 func (postControl *postController) DeletePost(ctx *gin.Context) {
-	id := ctx.Param("id")
-	idUint, err := strconv.ParseUint(id, 0, 0)
+	idUint, err := helper.ConvertToInt(ctx.Param("id"))
 	if err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
 
-	userId, errToken := postControl.GetUserIdByToken(strings.Split(ctx.GetHeader("Authorization"), " ")[1])
-	if errToken != nil {
-		response := services.ReturnResponse(false, "error in input data", nil, "", errToken.Error())
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
-		return
-	}
+	userId := ctx.GetUint64(middleware.AuthPayload)
 
 	post, err := postControl.postService.DeletePost(idUint, userId)
 	if post.Title == "" && err != nil {
@@ -124,8 +105,8 @@ func (postControl *postController) DeletePost(ctx *gin.Context) {
 }
 
 func (postControl *postController) FindPost(ctx *gin.Context) {
-	id := ctx.Param("id")
-	idUint, err := strconv.ParseUint(id, 0, 64)
+	idUint, err := helper.ConvertToInt(ctx.Param("id"))
+
 	if err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
@@ -150,19 +131,4 @@ func (postControl *postController) GetAllPost(ctx *gin.Context) {
 
 	response := services.ReturnResponse(true, "go", post, "", "")
 	ctx.JSON(http.StatusCreated, response)
-}
-
-func (postControl *postController) GetUserIdByToken(token string) (uint64, error) {
-	var userId uint64
-	payload, err := postControl.jwtServ.ValidateToken(token)
-	if err != nil {
-		return userId, err
-	}
-	claims := payload.Claims.(jwt.MapClaims)
-	d := fmt.Sprintf("%v", claims["user_id"])
-	idUint, err := strconv.ParseUint(d, 0, 0)
-	if err != nil {
-		return userId, err
-	}
-	return idUint, nil
 }

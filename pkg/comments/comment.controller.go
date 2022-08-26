@@ -1,14 +1,12 @@
 package comments
 
 import (
-	"fmt"
 	"net/http"
-	"strconv"
-	"strings"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"github.com/ooatamelbug/blog-task-app/pkg/comments/dto"
+	"github.com/ooatamelbug/blog-task-app/pkg/common/helper"
+	"github.com/ooatamelbug/blog-task-app/pkg/common/middleware"
 	services "github.com/ooatamelbug/blog-task-app/pkg/common/service"
 )
 
@@ -18,7 +16,6 @@ type CommentController interface {
 	DeleteComment(ctx *gin.Context)
 	FindComment(ctx *gin.Context)
 	GetAllComment(ctx *gin.Context)
-	GetUserIdByToken(token string) (uint64, error)
 }
 
 type commentController struct {
@@ -35,12 +32,7 @@ func NewCommentController(commentServ CommentService, jwtservice services.JWTSer
 
 func (commentControl *commentController) CreateComment(ctx *gin.Context) {
 	var createComment dto.CreateCommentDto
-	userId, err := commentControl.GetUserIdByToken(strings.Split(ctx.GetHeader("Authorization"), " ")[1])
-	if err != nil {
-		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
-		return
-	}
+	userId := ctx.GetUint64(middleware.AuthPayload)
 
 	createComment.UserID = userId
 
@@ -62,8 +54,8 @@ func (commentControl *commentController) CreateComment(ctx *gin.Context) {
 }
 
 func (commentControl *commentController) UpdateComment(ctx *gin.Context) {
-	id := ctx.Param("id")
-	idUint, err := strconv.ParseUint(id, 0, 0)
+	idUint, err := helper.ConvertToInt(ctx.Param("id"))
+
 	if err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
@@ -71,12 +63,8 @@ func (commentControl *commentController) UpdateComment(ctx *gin.Context) {
 	}
 
 	var createComment dto.CreateCommentDto
-	userId, errToken := commentControl.GetUserIdByToken(strings.Split(ctx.GetHeader("Authorization"), " ")[1])
-	if errToken != nil {
-		response := services.ReturnResponse(false, "error in input data", nil, "", errToken.Error())
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
-		return
-	}
+	userId := ctx.GetUint64(middleware.AuthPayload)
+
 	createComment.UserID = userId
 
 	errDto := ctx.BindJSON(&createComment)
@@ -98,20 +86,15 @@ func (commentControl *commentController) UpdateComment(ctx *gin.Context) {
 }
 
 func (commentControl *commentController) DeleteComment(ctx *gin.Context) {
-	id := ctx.Param("id")
-	idUint, err := strconv.ParseUint(id, 0, 0)
+	idUint, err := helper.ConvertToInt(ctx.Param("id"))
+
 	if err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
 		return
 	}
 
-	userId, err := commentControl.GetUserIdByToken(strings.Split(ctx.GetHeader("Authorization"), " ")[1])
-	if err != nil {
-		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
-		return
-	}
+	userId := ctx.GetUint64(middleware.AuthPayload)
 
 	comment, err := commentControl.posyservice.DeleteComment(idUint, userId)
 	if comment.Body == "" && err != nil {
@@ -125,8 +108,8 @@ func (commentControl *commentController) DeleteComment(ctx *gin.Context) {
 }
 
 func (commentControl *commentController) FindComment(ctx *gin.Context) {
-	id := ctx.Param("id")
-	idUint, err := strconv.ParseUint(id, 0, 64)
+	idUint, err := helper.ConvertToInt(ctx.Param("id"))
+
 	if err != nil {
 		response := services.ReturnResponse(false, "error in input data", nil, "", err.Error())
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, response)
@@ -153,19 +136,4 @@ func (commentControl *commentController) GetAllComment(ctx *gin.Context) {
 
 	response := services.ReturnResponse(true, "go", comment, "", "")
 	ctx.JSON(http.StatusCreated, response)
-}
-
-func (commentControl *commentController) GetUserIdByToken(token string) (uint64, error) {
-	var userId uint64
-	payload, err := commentControl.jwtServ.ValidateToken(token)
-	if err != nil {
-		return userId, err
-	}
-	claims := payload.Claims.(jwt.MapClaims)
-	d := fmt.Sprintf("%v", claims["user_id"])
-	idUint, err := strconv.ParseUint(d, 0, 0)
-	if err != nil {
-		return userId, err
-	}
-	return idUint, nil
 }
