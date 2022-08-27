@@ -9,7 +9,7 @@ type User struct {
 	FirstName    string     `gorm:"type: varchar(255)" json:"firstname"`
 	LastName     string     `gorm:"type: varchar(255)" json:"lastname"`
 	Email        string     `gorm:"type: varchar(255)" json:"email"`
-	Password     string     `gorm:"type: varchar(255);not null" json:"password"`
+	Password     string     `gorm:"->;<-;not null" json:"password"`
 	PostsList    *[]Post    `json:"posts,omitempty"`
 	CommentsList *[]Comment `json:"comments,omitempty"`
 }
